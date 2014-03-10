@@ -1,0 +1,19 @@
+{
+  "settings": {
+    "analysis": {
+      "analyzer": {
+        "default": {
+          "type": "custom",
+          "tokenizer": "standard",
+          "filter": ["standard", "lowercase", "stemmer_english"]
+        }
+      },
+      "filter": {
+        "stemmer_english": {
+          "type": "stemmer",
+          "name": "english"
+        }
+      }
+    }
+  }
+}

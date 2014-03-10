@@ -1,0 +1,116 @@
+{
+  "search_start" : {
+    "properties" : {
+
+      "path" : {
+        "type" : "string",
+        "index": "not_analyzed"
+      },
+      "path1" : {
+        "type" : "string",
+        "index": "not_analyzed"
+      },
+      "path2" : {
+        "type" : "string",
+        "index": "not_analyzed"
+      },
+      "path3" : {
+        "type" : "string",
+        "index": "not_analyzed"
+      },
+      "format" : {
+        "type" : "string",
+        "index": "not_analyzed"
+      },
+      "first_org" : {
+        "type" : "string",
+        "index": "not_analyzed"
+      },
+      "orgs" : {
+        "type" : "string",
+        "index": "not_analyzed"
+      },
+
+      "norm_search" : {
+        "type" : "string",
+        "index": "not_analyzed"
+      },
+      "search" : {
+        "type": "multi_field",
+        "fields": {
+          "search": {
+            "type" : "string",
+            "index": "not_analyzed"
+          },
+          "analyzed": {
+            "type" : "string"
+          }
+        }
+      },
+
+      "views" : {
+        "type" : "long"
+      },
+
+      "date" : {
+        "type" : "date",
+        "format" : "dateOptionalTime"
+      },
+      "sampled" : {
+        "type" : "double"
+      }
+    }
+  },
+
+  "search_dest" : {
+    "properties" : {
+
+      "dest_path" : {
+        "type" : "string",
+        "index": "not_analyzed"
+      },
+      "format" : {
+        "type" : "string",
+        "index": "not_analyzed"
+      },
+      "first_org" : {
+        "type" : "string",
+        "index": "not_analyzed"
+      },
+      "orgs" : {
+        "type" : "string",
+        "index": "not_analyzed"
+      },
+
+      "norm_search" : {
+        "type" : "string",
+        "index": "not_analyzed"
+      },
+      "search" : {
+        "type": "multi_field",
+        "fields": {
+          "search": {
+            "type" : "string",
+            "index": "not_analyzed"
+          },
+          "analyzed": {
+            "type" : "string",
+            "analyzer": "english_text"
+          }
+        }
+      },
+
+      "views" : {
+        "type" : "long"
+      },
+
+      "date" : {
+        "type" : "date",
+        "format" : "dateOptionalTime"
+      },
+      "sampled" : {
+        "type" : "double"
+      }
+    }
+  }
+}
