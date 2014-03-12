@@ -504,6 +504,7 @@ class GAData(object):
         )
 
         stats_doc = dict(
+            _type='result_click_stats',
             cookie_visibility=cookie_visibility,
             searches_performed=searches_performed,
             refinements=refinements,
@@ -514,10 +515,12 @@ class GAData(object):
             search_abandons_rate=(float(search_abandons) / searches_performed),
             search_1_click=search_1_click,
             search_1_click_rate=(float(search_1_click) / searches_performed),
+            sampled=self.client.worst_sample_rate,
+            date=date,
         )
 
-        for k, v in stats_doc.items():
-            print "%s\t\t%s" % (k, v)
+        yield stats_doc
+        return
 
         prev_count = total_positions.get(1, 0)
         drop = []
@@ -541,7 +544,7 @@ class GAData(object):
             queries
         
         # items from this
-        return stats_doc
+        return
 
     def fetch_traffic_info(self, date):
         """Fetch info on views of pages.

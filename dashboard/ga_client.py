@@ -57,6 +57,10 @@ class GAClient(object):
     def __init__(self):
         self._last_request = None
 
+        # Worst sampling rate that we've seen.  None if none seen.
+        # Callers of the client may reset this to None, and read it.
+        self.worst_sample_rate = None
+
         # Time until we can trust that GA has processed the data.
         self.ga_latency = timedelta(hours=4)
 
@@ -232,4 +236,10 @@ class GAClient(object):
         date = datetime(year=date.year, month=date.month, day=date.day)
 
         for row in self._fetch_from_ga(profile_name, date, name_map, kwargs):
+            sample_rate = row.get('sampled')
+            if (
+                self.worst_sample_rate is None or
+                self.worst_sample_rate > sample_rate
+            ):
+                self.worst_sample_rate = sample_rate
             yield row

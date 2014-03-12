@@ -41,17 +41,13 @@ class ESIndex(object):
                 body={type: mapping})
         self.es.indices.put_alias(self.index_name, 'search_dashboard')
 
-    def add(self, docs, type):
+    def add(self, docs):
         if not self.es.indices.exists(self.index_name):
             self.create_index()
-        def mk_bulk(docs):
-            for doc in docs:
-                doc['_type'] = type
-                yield doc
         count = 0
         for result in streaming_bulk(
             self.es,
-            mk_bulk(docs),
+            docs,
             raise_on_error=True,
             index=self.index_name
         ):
