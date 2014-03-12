@@ -4,7 +4,7 @@
 
 from apiclient.errors import HttpError
 from dashboard.dirs import CACHE_DIR
-from dashboard.ga_auth import initialise_service
+from dashboard.ga_auth import perform_auth
 from dashboard.ga_profile import get_profile
 from datetime import datetime, timedelta
 from oauth2client.client import AccessTokenRefreshError
@@ -69,20 +69,11 @@ class GAClient(object):
         if self._last_request is not None:
             return
         try:
-            self.service = initialise_service()
+            self.service = perform_auth()
             self.profiles = {
-                'filtered': get_profile(
-                    self.service, 'www.gov.uk', 'UA-26179049-1',
-                    '1. GOV.UK (Entire site - Filtered)'),
-                'search_analysis': get_profile(
-                    self.service, 'www.gov.uk', 'UA-26179049-1',
-                    '3. Search pages (adv. analysis)'),
                 'search': get_profile(
                     self.service, 'www.gov.uk', 'UA-26179049-1',
                     'X. GOV.UK (Entire site - Search analysis)'),
-                'search_hack': get_profile(
-                    self.service, 'www.gov.uk', 'UA-26179049-1',
-                    'X. GOV.UK (Entire site - Site search results hack)'),
             }
         except AccessTokenRefreshError:
             logger.exception(
@@ -144,10 +135,10 @@ class GAClient(object):
 
             start_index = 1
             while True:
-                resp = self.service.data().ga().get(
+                resp = self.service.query.get_raw_response(
                     start_index=start_index,
                     **params
-                ).execute()
+                )
                 if resp.get('containsSampledData'):
                     sample_size = int(resp.get('sampleSize', 0))
                     sample_space = int(resp.get('sampleSpace', 1))

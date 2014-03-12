@@ -2,6 +2,7 @@
 from dashboard.dirs import CONFIG_DIR
 from elasticsearch import Elasticsearch
 from elasticsearch.helpers import streaming_bulk
+import elasticsearch.exceptions
 import json
 import logging
 import os
@@ -24,13 +25,20 @@ class ESIndex(object):
         self.settings = json.load(open(settings_path))
 
     def clear(self):
-        self.es.indices.delete(self.index_name)
+        try:
+            self.es.indices.delete(self.index_name)
+        except elasticsearch.exceptions.NotFoundError:
+            pass
 
     def create_index(self):
         self.es.indices.create(self.index_name, {
-            'mappings': self.mappings,
-            'index': self.settings,
+            'settings': self.settings,
         })
+        for type, mapping in self.mappings.items():
+            self.es.indices.put_mapping(
+                index=self.index_name,
+                doc_type=type,
+                body={type: mapping})
         self.es.indices.put_alias(self.index_name, 'search_dashboard')
 
     def add(self, docs, type):

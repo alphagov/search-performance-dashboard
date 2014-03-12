@@ -1,5 +1,5 @@
 *.pyc
-/secrets/analytics.dat
 /secrets/client_secrets.json
-/secrets/profile*.json
+/secrets/storage.json
+/secrets/profile_*.json
 /cache/gacache/

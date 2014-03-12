@@ -12,19 +12,13 @@ def get_account_id(service, account_name):
     """Get a Google Analytics account for a user by name.
 
     :param service: A service object; get from
-    dashboard.ga_auth.initialise_service.
+    dashboard.ga_auth.perform_auth.
 
     :param account_name: The account name to lookup.
 
     """
-
-    # Note; if a user has very many accounts, it may be necessary to page
-    # through the results.  I don't have very many accounts, so am not
-    # implementing that for now.  See
-    # https://developers.google.com/analytics/devguides/config/mgmt/v3/mgmtReference/management/accounts/list
-    # for details.
-    accounts = service.management().accounts().list().execute()
-    for account in accounts.get('items', ()):
+    accounts = service.management.accounts()
+    for account in accounts:
         if account.get('name') == account_name:
             return account.get('id')
     raise KeyError("No analytics account found of name %r" % (account_name,))
@@ -34,7 +28,7 @@ def get_profile(service, account_name, property_id, profile_name):
     """Get a Google Analytics account for a user by name.
 
     :param service: A service object; get from
-    dashboard.ga_auth.initialise_service.
+    dashboard.ga_auth.perform_auth.
 
     :param account_name: The account name to lookup.
 
@@ -51,13 +45,9 @@ def get_profile(service, account_name, property_id, profile_name):
             return json.load(fobj)
     
     account_id = get_account_id(service, account_name)
+    profiles = service.management.profiles(account_id, property_id)
 
-    profiles = service.management().profiles().list(
-        accountId=account_id,
-        webPropertyId=property_id,
-    ).execute()
-
-    for profile in profiles.get('items'):
+    for profile in profiles:
         if profile.get('name') == profile_name:
             result = {
                 'account_name': account_name,

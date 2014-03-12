@@ -12,6 +12,8 @@ logging.basicConfig(level=logging.INFO)
 def index_daily_data(date):
     ga = GAData()
     es = ESIndex(date)
+    es.clear()
+    es.create_index()
     traffic_info = ga.fetch_traffic_info(date)
     result_clicks = ga.fetch_search_result_clicks(date)
     es.add(result_clicks, "result_clicks")

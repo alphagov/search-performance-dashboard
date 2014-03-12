@@ -3,52 +3,37 @@
 
 """
 
-import argparse
-import httplib2
+import gapy.client
+import oauth2client.tools
 import os
-import sys
-from apiclient.discovery import build
-from oauth2client.client import flow_from_clientsecrets
-from oauth2client.file import Storage
-from oauth2client.tools import run_flow, argparser
 from dashboard.dirs import SECRETS_DIR
 
-# The file with the OAuth 2.0 Client details.
+# The file with the OAuth 2.0 Client details.  This should be a "Client ID for
+# native application", which can be created and downloaded at the google
+# developers console (https://console.developers.google.com).
 CLIENT_SECRETS = os.path.join(SECRETS_DIR, 'client_secrets.json')
 
-# A helpful message to display if the CLIENT_SECRETS file is missing.
-MISSING_CLIENT_SECRETS_MESSAGE = '%s is missing' % CLIENT_SECRETS
-
-# The Flow object to be used if we need to authenticate.
-FLOW = flow_from_clientsecrets(
-    CLIENT_SECRETS,
-    scope='https://www.googleapis.com/auth/analytics.readonly',
-    message=MISSING_CLIENT_SECRETS_MESSAGE,
-)
-
-# A file to store the access token
-TOKEN_FILE_NAME = os.path.join(SECRETS_DIR, 'analytics.dat')
+# A file which will be used to store the generated tokens produced after the
+# oauth flow succeeds.  This should be kept secret, and includes a refresh
+# token to refresh the oauth authorisation when required.
+CLIENT_STORAGE = os.path.join(SECRETS_DIR, 'storage.json')
 
 
-def prepare_credentials():
-    """Retrieve existing credentials, or run the auth flow to get new ones.
-    
+def perform_auth():
+    """Authenticate with the GA API.
+
+    Returns a gapy.Client object.
+
     """
-    storage = Storage(TOKEN_FILE_NAME)
-    credentials = storage.get()
-    parser = argparse.ArgumentParser(
-        description=__doc__,
-        formatter_class=argparse.RawDescriptionHelpFormatter,
-        parents=[argparser],
+    # Prevent oauth2client from trying to open a browser
+    # This is run from inside the VM so there is no browser
+    oauth2client.tools.FLAGS.auth_local_webserver = False
+
+    # We only want to request readonly access to analytics.  gapy doesn't have
+    # any way to request this other than by monkeypatching it, sadly.
+    gapy.client.GOOGLE_API_SCOPE = "https://www.googleapis.com/auth/analytics.readonly"
+
+    return gapy.client.from_secrets_file(
+        CLIENT_SECRETS,
+        storage_path=CLIENT_STORAGE,
     )
-    flags = parser.parse_args(sys.argv[1:])
-    if credentials is None or credentials.invalid:
-        credentials = run_flow(FLOW, storage, flags)
-    return credentials
-
-
-def initialise_service():
-    http = httplib2.Http()
-    credentials = prepare_credentials()
-    http = credentials.authorize(http)
-    return build('analytics', 'v3', http=http)
