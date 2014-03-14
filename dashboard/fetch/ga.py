@@ -8,6 +8,7 @@ from dashboard.fetch.url_to_info import UrlToInfo
 from urlparse import urlparse, parse_qs
 import hashlib
 import logging
+import math
 import re
 import unicodedata
 
@@ -204,16 +205,13 @@ class GAData(object):
         permitting cookies) so we only get a proportion of these clicks.
 
         Returns three dicts:
-         - Mapping from offset in result list to total number of clicks.
-         - Mapping from query to a mapping from offset in result list to number
-           of clicks.
-         - Mapping from destination page to a mapping from offset in result
-           list to number of clicks.
+         - { offset: count }
+         - { norm_query: { offset: { (query, path): count }}}
+         - FIXME
 
         """
         total_positions = Counter()
         positions_by_query = {}
-        positions_by_page = {}
         top_clicks_by_query = {}
 
         for row in self.client.fetch(
@@ -241,19 +239,9 @@ class GAData(object):
                 continue
 
             total_positions[position] += views
-            if norm_search in positions_by_query:
-                positions_by_query[norm_search][position] += views
-            else:
-                counter = Counter()
-                counter[position] = views
-                positions_by_query[norm_search] = counter
 
-            if path in positions_by_page:
-                positions_by_page[path][position] += views
-            else:
-                counter = Counter()
-                counter[position] = views
-                positions_by_page[path] = counter
+            positions_by_query.setdefault(norm_search, {}) \
+                .setdefault(position, Counter())[(search, path)] += views
 
             if position == 1:
                 top = top_clicks_by_query.get(norm_search)
@@ -266,7 +254,7 @@ class GAData(object):
                         else:
                             top[1] += views
 
-        return total_positions, positions_by_query, positions_by_page, top_clicks_by_query
+        return total_positions, positions_by_query, top_clicks_by_query
 
     def _fetch_search_next_pages(self):
         """Fetch counts of page views following a search page.
@@ -276,10 +264,13 @@ class GAData(object):
         _weren't_ clicks on search results; these are an indication of users
         who weren't satisfied by the search results.
 
-        Returns two dicts:
-         - Mapping from query to number of following page views.
-         - Mapping from page path to number of page views of that page that
-           followed a search page.
+        Returns three dicts.  Values in all cases are the total number of page
+        views of the destination page which were preceded by a search page.
+        The keys are:
+
+         - Mapping from query to views
+         - Mapping from page path to views.
+         - Mapping from (query, page path) to views.
 
         """
         next_page_counts_by_query = Counter()
@@ -448,12 +439,12 @@ class GAData(object):
     ):
         """Calculate overall statistics about search performance.
 
-        :param total_positions: The 
-        :param next_page_counts:
-        :param refinements_by_search:
-        :param searches:
-
         """
+        average_position = (
+            float(sum(position * count for position, count in total_positions.items()))
+            / sum(total_positions.values())
+        )
+
 
         count_with_cookie = sum(total_positions.values())
         count_next_pages = sum(next_page_counts.values())
@@ -493,6 +484,7 @@ class GAData(object):
             _id=self.date_str,
             date=self.date,
             cookie_visibility=cookie_visibility,
+            average_position=average_position,
             searches_performed=searches_performed,
             refinements=refinements,
             refinements_rate=(float(refinements) / searches_performed),
@@ -504,6 +496,38 @@ class GAData(object):
             search_1_click_rate=(float(search_1_click) / searches_performed),
             sampled=self.client.worst_sample_rate,
         )
+
+    @staticmethod
+    def _calc_drop_rate(positions, result_len=10):
+        """Calculate the drop-off rate of clicks on positions.
+        
+        Returns an array of rate of clicks compared to the previous position.
+
+        The result array is of length result_len, and the final entry
+        represents the geometric mean of the drop off rates for all subsequent
+        positions supplied.  The logic behind this is that the rate becomes
+        fairly constant after a given point, so for the purposes of comparing
+        to an expected drop its better to use a constant rate, rather than
+        allow the variation we see due to the low sample size for later click
+        posisions.
+
+        """
+        prev_count = positions.get(1, 0)
+        drop = []
+        for pos in range(2, 20):
+            count = positions.get(pos, 0)
+            if prev_count == 0:
+                drop.append(1.0)
+            else:
+                drop.append(float(count) / prev_count)
+            prev_count = count
+        # Compute geometric mean of drop after position 10, since currently the
+        drop[result_len - 1:] = [math.pow(reduce(
+            lambda a, x: a * x,
+            drop[result_len - 1:],
+            1.0
+        ), 1.0 / len(drop[result_len - 1:]))]
+        return drop
 
     def fetch_search_result_clicks(self):
         """Fetch info on clicks on search results.
@@ -522,7 +546,6 @@ class GAData(object):
         (
             total_positions,
             positions_by_query,
-            positions_by_page,
             top_clicks_by_query,
         ) = self._fetch_search_clicks_with_position()
         (
@@ -537,6 +560,8 @@ class GAData(object):
             top_clicks_by_query,
             next_page_counts,
         )
+
+        # Yield a document about overall statistics of search
         stats = self._calculate_overall_stats(
             total_positions,
             next_page_counts,
@@ -547,31 +572,34 @@ class GAData(object):
         stats['date'] = self.date_str
         stats['_id'] = self.date_idstr
         yield stats
-        return
 
-        prev_count = total_positions.get(1, 0)
-        drop = []
-        for pos in range(2, 100):
-            count = total_positions.get(pos, 0)
-            if prev_count == 0:
-                drop.append(1.0)
-            else:
-                drop.append(float(count) / prev_count)
-            prev_count = count
-        print drop
+        for doc in self._search_result_clicks(positions_by_query):
+            yield doc
 
+    def _search_result_clicks(self, positions_by_query):
+        """Yield a doc for every search-result combination seen.
+
+        """
+        # Yield a doc for each combination of (search, destination page, rank)
+        # recording number of times that was viewed.
         queries = []
-        for query, value in sorted(positions_by_query.items(), key=lambda x: -sum(x[1].values())):
-            clicks = sum(value.values())
-            visits_from_search = next_page_counts_by_query.get(query,0)
-            refinements = refinements_by_search.get(query, {})
-            print repr(query), value, clicks, visits_from_search - clicks, repr(refinements)
-            for k, v in sorted(value.items()):
-                print "%d\t%d" % (k, v,)
-            queries
-        
-        # items from this
-        return
+        for norm_search, positions in positions_by_query.items():
+            total_clicks_for_search = 0 
+            for position, result_info in positions.items():
+                for (search, path), count in result_info.items():
+                    yield {
+                        '_type': 'search_result_click',
+                        '_id': id_from_string('%s!%s!%s' % (
+                            search,
+                            position,
+                            path,
+                        )),
+                        'search': search,
+                        'position': position,
+                        'path': path,
+                        'norm_search': norm_search,
+                        'clicks': count,
+                    }
 
     def fetch_traffic_info(self, date):
         """Fetch info on views of pages.
