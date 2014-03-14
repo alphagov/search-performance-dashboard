@@ -1,4 +1,4 @@
-from flask import Flask, request, jsonify
+from flask import Flask, request, jsonify, render_template
 from dashboard.essearch import ESSearch
 import datetime
 
@@ -8,7 +8,7 @@ app = Flask('search_performance_dashboard')
 
 @app.route('/')
 def front():
-    return ''
+    return render_template('index.html')
 
 
 def start_date():
