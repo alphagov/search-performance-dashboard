@@ -24,9 +24,7 @@ class ESSearch(object):
             body={
                 'query': {
                     'filtered': {
-                        'query': {
-                            'match_all': {}
-                        },
+                        'query': { 'match_all': {} },
                         'filter': {
                             'and': [
                                 {
@@ -54,7 +52,45 @@ class ESSearch(object):
             }
         )
         stats = [
-            doc#.get('_source', {})
+            doc.get('_source', {})
             for doc in docs.get('hits', {}).get('hits', [])
         ]
         return stats
+
+    def click_positions(self, query=None):
+        filters = [{'type': { 'value': 'search_result_click' }}]
+        if query is not None:
+            filters.append({
+                'term': {
+                    'norm_search': query
+                }
+            })
+        body = {
+            'query': {
+                'filtered': {
+                    'query': { 'match_all': {} },
+                    'filter': {
+                        'and': filters
+                    },
+                }
+            },
+            'size': 0,
+            'facets': {
+                'positions': {
+                    'terms_stats': {
+                        'key_field': 'position',
+                        'value_field': 'clicks',
+                        'order': 'term',
+                        'size': 0,
+                    }
+                }
+            }
+        }
+        result = self.es.search(
+            index=self.index,
+            body=body
+        )
+        return [
+            (item['term'], item['total'])
+            for item in result['facets']['positions']['terms']
+        ]
