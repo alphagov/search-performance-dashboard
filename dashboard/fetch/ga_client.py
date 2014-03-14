@@ -4,8 +4,8 @@
 
 from apiclient.errors import HttpError
 from dashboard.dirs import CACHE_DIR
-from dashboard.ga_auth import perform_auth
-from dashboard.ga_profile import get_profile
+from dashboard.fetch.ga_auth import perform_auth
+from dashboard.fetch.ga_profile import get_profile
 from datetime import datetime, timedelta
 from oauth2client.client import AccessTokenRefreshError
 import hashlib

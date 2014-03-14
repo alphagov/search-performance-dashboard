@@ -13,7 +13,6 @@ logger = logging.getLogger(__name__)
 
 class ESIndex(object):
     def __init__(self, date):
-        self.date = date
         self.index_name = 'search_dashboard_%04d%02d%02d' % (
             date.year, date.month, date.day,
         )

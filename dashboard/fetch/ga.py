@@ -3,8 +3,8 @@
 """
 
 from collections import Counter
-from dashboard.ga_client import GAClient, GAError
-from dashboard.url_to_info import UrlToInfo
+from dashboard.fetch.ga_client import GAClient, GAError
+from dashboard.fetch.url_to_info import UrlToInfo
 from urlparse import urlparse, parse_qs
 import hashlib
 import logging
@@ -174,24 +174,29 @@ class SearchAggregator(object):
 
 
 class GAData(object):
-    def __init__(self):
+    def __init__(self, date):
         self.client = GAClient()
         self.url_to_info = UrlToInfo()
+        self.date = date
+        self.date_idstr = date.strftime("%Y%m%d")
+        self.date_str = '%04d-%02d-%02dT00:00:00Z' % (
+            self.date.year,
+            self.date.month,
+            self.date.day,
+        )
 
-    @staticmethod
-    def _date_info(date):
+    def _date_info(self):
         """Return date information in a format to be indexed in elasticsearch.
 
         Returns a dict, so we can easily add extra breakdowns of date (such as
         day of week) as separate fields.
 
         """
-        date_str = '%04d-%02d-%02dT00:00:00Z' % (date.year, date.month, date.day)
         return {
-            'date': date_str,
+            'date': self.date_str,
         }
 
-    def _fetch_search_clicks_with_position(self, date):
+    def _fetch_search_clicks_with_position(self):
         """Fetch counts of search click positions.
 
         This theoretically represents all clicks on search results, but
@@ -212,7 +217,7 @@ class GAData(object):
         top_clicks_by_query = {}
 
         for row in self.client.fetch(
-            'search', date,
+            'search', self.date,
             dimensions='ga:pagePath,ga:previousPagePath,ga:customVarValue21',
             metrics='ga:pageViews',
             sort='-ga:pageViews',
@@ -263,7 +268,7 @@ class GAData(object):
 
         return total_positions, positions_by_query, positions_by_page, top_clicks_by_query
 
-    def _fetch_search_next_pages(self, date):
+    def _fetch_search_next_pages(self):
         """Fetch counts of page views following a search page.
         
         Excludes search refinements.  This can be compared to counts on clicks
@@ -285,7 +290,7 @@ class GAData(object):
         # page which _weren't_ clicks on search results; these are an
         # indication of users who weren't satisfied by the search results.
         for row in self.client.fetch(
-            'search', date,
+            'search', self.date,
             dimensions='ga:pagePath,ga:previousPagePath',
             metrics='ga:pageViews',
             sort='-ga:pageViews',
@@ -305,7 +310,7 @@ class GAData(object):
             next_page_counts[(norm_search, path)] += views
         return next_page_counts_by_query, next_page_counts_by_path, next_page_counts
 
-    def _fetch_search_refinements(self, date):
+    def _fetch_search_refinements(self):
         """Fetch all search refinements.
 
         Returns a dict mapping from (normalised) search to a Counter, which in
@@ -315,7 +320,7 @@ class GAData(object):
         # Fetch all search refinements.
         refinements_by_search = {}
         for row in self.client.fetch(
-            'search', date,
+            'search', self.date,
             dimensions='ga:pagePath,ga:previousPagePath',
             metrics='ga:pageViews',
             sort='-ga:pageViews',
@@ -334,7 +339,7 @@ class GAData(object):
             refinements_by_search.setdefault(norm_search, Counter())[norm_refinement] += views
         return refinements_by_search
 
-    def _fetch_search_exits(self, date):
+    def _fetch_search_exits(self):
         """Fetch a count of exits from search pages.
 
         This returns a dict mapping from (normalised) search query to a count
@@ -344,7 +349,7 @@ class GAData(object):
         """
         exits = Counter()
         for row in self.client.fetch(
-            'search', date,
+            'search', self.date,
             dimensions='ga:exitPagePath',
             metrics='ga:pageViews',
             sort='-ga:pageViews',
@@ -360,13 +365,16 @@ class GAData(object):
             exits[norm_search] += views
         return exits
 
-    def _fetch_searches(self, date):
-        """Fetch a count of all searches performed.
+    def _fetch_searches(self):
+        """Fetch details of how often searches were performed.
+
+        Returns a dict mapping from normalised search to count of times it was
+        performed.
 
         """
         searches = Counter()
         for row in self.client.fetch(
-            'search', date,
+            'search', self.date,
             dimensions='ga:pagePath,ga:previousPagePath', 
             metrics='ga:pageViews',
             sort='-ga:pageViews',
@@ -430,45 +438,22 @@ class GAData(object):
             visibility * 100.0, total_with_cookie)
         return visibility
 
-    def fetch_search_result_clicks(self, date):
-        """Fetch info on clicks on search results.
+    def _calculate_overall_stats(
+        self,
+        total_positions,
+        next_page_counts,
+        refinements_by_search,
+        searches,
+        cookie_visibility,
+    ):
+        """Calculate overall statistics about search performance.
 
-        This uses the tracking of positions of clicks, combined with tracking
-        the previous page path, to get counts of the number of queries which
-        led to a click on the result.
-
-        It does a separate lookup for page views following a search result page
-        which 
-
-        Finally it does a lookup to get counts of search exits for the queries.
+        :param total_positions: The 
+        :param next_page_counts:
+        :param refinements_by_search:
+        :param searches:
 
         """
-        # Fetch the data we need.
-        (
-            total_positions,
-            positions_by_query,
-            positions_by_page,
-            top_clicks_by_query,
-        ) = self._fetch_search_clicks_with_position(date)
-        (
-            next_page_counts_by_query,
-            next_page_counts_by_path,
-            next_page_counts,
-        ) = self._fetch_search_next_pages(date)
-        refinements_by_search = self._fetch_search_refinements(date)
-        searches = self._fetch_searches(date)
-        cookie_visibility = self._estimate_cookie_visibility(
-            top_clicks_by_query,
-            next_page_counts,
-        )
-
-        next_page_sum_by_path = 0
-        for path, value in positions_by_page.items():
-            next_page_sum_by_path += next_page_counts_by_path.get(path)
-
-        next_page_sum_by_query = 0
-        for query, value in positions_by_query.items():
-            next_page_sum_by_query += next_page_counts_by_query.get(query)
 
         count_with_cookie = sum(total_positions.values())
         count_next_pages = sum(next_page_counts.values())
@@ -503,8 +488,10 @@ class GAData(object):
             - search_abandons
         )
 
-        stats_doc = dict(
+        return dict(
             _type='result_click_stats',
+            _id=self.date_str,
+            date=self.date,
             cookie_visibility=cookie_visibility,
             searches_performed=searches_performed,
             refinements=refinements,
@@ -516,10 +503,50 @@ class GAData(object):
             search_1_click=search_1_click,
             search_1_click_rate=(float(search_1_click) / searches_performed),
             sampled=self.client.worst_sample_rate,
-            date=date,
         )
 
-        yield stats_doc
+    def fetch_search_result_clicks(self):
+        """Fetch info on clicks on search results.
+
+        This uses the tracking of positions of clicks, combined with tracking
+        the previous page path, to get counts of the number of queries which
+        led to a click on the result.
+
+        It does a separate lookup for page views following a search result page
+        which 
+
+        Finally it does a lookup to get counts of search exits for the queries.
+
+        """
+        # Fetch the data we need.
+        (
+            total_positions,
+            positions_by_query,
+            positions_by_page,
+            top_clicks_by_query,
+        ) = self._fetch_search_clicks_with_position()
+        (
+            next_page_counts_by_query,
+            next_page_counts_by_path,
+            next_page_counts,
+        ) = self._fetch_search_next_pages()
+        refinements_by_search = self._fetch_search_refinements()
+        searches = self._fetch_searches()
+
+        cookie_visibility = self._estimate_cookie_visibility(
+            top_clicks_by_query,
+            next_page_counts,
+        )
+        stats = self._calculate_overall_stats(
+            total_positions,
+            next_page_counts,
+            refinements_by_search,
+            searches,
+            cookie_visibility,
+        )
+        stats['date'] = self.date_str
+        stats['_id'] = self.date_idstr
+        yield stats
         return
 
         prev_count = total_positions.get(1, 0)

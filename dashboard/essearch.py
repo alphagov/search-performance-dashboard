@@ -54,7 +54,7 @@ class ESSearch(object):
             }
         )
         stats = [
-            doc.get('_source', {})
+            doc#.get('_source', {})
             for doc in docs.get('hits', {}).get('hits', [])
         ]
         return stats
