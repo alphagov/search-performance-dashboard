@@ -589,11 +589,13 @@ class GAData(object):
                 for (search, path), count in result_info.items():
                     yield {
                         '_type': 'search_result_click',
-                        '_id': id_from_string('%s!%s!%s' % (
+                        '_id': id_from_string('%s!%s!%s!%s' % (
+                            self.date_idstr,
                             search,
                             position,
                             path,
                         )),
+                        'date': self.date_str,
                         'search': search,
                         'position': position,
                         'path': path,

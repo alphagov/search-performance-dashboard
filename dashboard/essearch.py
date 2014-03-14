@@ -57,13 +57,23 @@ class ESSearch(object):
         ]
         return stats
 
-    def click_positions(self, query=None):
-        filters = [{'type': { 'value': 'search_result_click' }}]
+    def click_positions(self, startdate, enddate, query=None):
+        filters = [
+            {'type': { 'value': 'search_result_click' }},
+            {
+                'range': {
+                    'date': {
+                        'gte': startdate,
+                        'lte': enddate,
+                    }
+                },
+            }
+        ]
         if query is not None:
             filters.append({
                 'term': {
                     'norm_search': query
-                }
+                },
             })
         body = {
             'query': {

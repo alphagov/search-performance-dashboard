@@ -13,7 +13,11 @@ def get_stats():
 
 def click_positions(query=None):
     es = dashboard.essearch.ESSearch()
-    return es.click_positions(query)
+    return es.click_positions(
+        datetime.date.today() - datetime.timedelta(days=7),
+        datetime.date.today() - datetime.timedelta(days=1),
+        query,
+    )
 
 
 if __name__ == '__main__':
