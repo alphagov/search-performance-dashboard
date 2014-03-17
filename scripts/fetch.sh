@@ -15,7 +15,7 @@ while :; do
 # be retrieved from the cache.
 PYTHONPATH="${DIR}/.." "${DIR}/fetch_data.py" 7
 
-# Sleep until 8 am.
+echo "Waiting until 8am for next fetch"
 sleep `python -c 'import datetime;
 d=datetime.date.today();
 print(
