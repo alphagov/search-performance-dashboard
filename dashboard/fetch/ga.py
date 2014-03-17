@@ -590,7 +590,7 @@ class GAData(object):
             total_clicks_for_search = 0 
             for position, result_info in positions.items():
                 for (search, path), count in result_info.items():
-                    yield {
+                    doc = {
                         '_type': 'search_result_click',
                         '_id': id_from_string('%s!%s!%s!%s' % (
                             self.date_idstr,
@@ -605,6 +605,8 @@ class GAData(object):
                         'norm_search': norm_search,
                         'clicks': count,
                     }
+                    doc.update(split_path(path))
+                    yield doc
 
     def fetch_traffic_info(self, date):
         """Fetch info on views of pages.
@@ -700,9 +702,6 @@ class GAData(object):
             search_fields = {
                 'search': search,
                 'norm_search': norm_search,
-            }
-            page_fields = {
-                'path': path,
             }
             page_fields.update(split_path(path))
 

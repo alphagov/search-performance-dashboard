@@ -17,6 +17,30 @@
     }
   },
 
+  "search_result_click": {
+    "_all": { "enabled": false },
+    "properties" : {
+      "position" : { "type" : "long" },
+      "clicks" : { "type" : "long" },
+      "norm_search" : { "type" : "string", "index": "not_analyzed"
+      },
+      "search" : {
+        "type": "multi_field",
+        "fields": {
+          "search": { "type" : "string", "index": "not_analyzed" },
+          "analyzed": { "type" : "string", "analyzer": "english_text" }
+        }
+      },
+
+      "path" : { "type" : "string", "index": "not_analyzed" },
+      "path1" : { "type" : "string", "index": "not_analyzed" },
+      "path2" : { "type" : "string", "index": "not_analyzed" },
+      "path3" : { "type" : "string", "index": "not_analyzed" },
+
+      "date" : { "type" : "date", "format" : "dateOptionalTime" }
+    }
+  },
+
   "search_start" : {
     "_all": { "enabled": false },
     "properties" : {

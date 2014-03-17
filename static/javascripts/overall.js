@@ -35,11 +35,23 @@
       if(typeof overall.sparkline === 'undefined'){
         overall.sparkline = root.matrix.sparklineGraph('#overall-click-graph', { data: clickRate, points: overall.points, height: 60, width: overall.$clickGraphEl.width() });
         overall.count_sparkline = root.matrix.sparklineGraph('#overall-count-graph', { data: counts, points: overall.points, height: 60, width: overall.$countGraphEl.width() });
-        overall.sparkline.update(clickRate, "Click rate over the past " + (Math.round(clickRate.length)) + " days");
-        overall.count_sparkline.update(counts, "Searches over the past " + (Math.round(counts.length)) + " days");
+        overall.sparkline.update(
+          clickRate,
+          "Click rate over the past " + (Math.round(clickRate.length)) + " days"
+        );
+        overall.count_sparkline.update(
+          counts,
+          "Searches over the past " + (Math.round(counts.length)) + " days"
+        );
       } else {
-        overall.sparkline.update(clickRate, "Click rate over the past " + (Math.round(clickRate.length)) + " days");
-        overall.count_sparkline.update(counts, "Searches over the past " + (Math.round(counts.length)) + " days");
+        overall.sparkline.update(
+          clickRate,
+          "Click rate over the past " + (Math.round(clickRate.length)) + " days"
+        );
+        overall.count_sparkline.update(
+          counts,
+          "Searches over the past " + (Math.round(counts.length)) + " days"
+        );
       }
 
     },
