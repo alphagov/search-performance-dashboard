@@ -11,15 +11,18 @@
       if($body.width() < $body.height()){
         $body.addClass('tall');
       }
-      matrix.traffic.init();
-      matrix.search.init();
-      matrix.content.init();
-      matrix.insideGov.init();
+      matrix.overall.init();
+      // matrix.search.init();
+      // matrix.content.init();
+      // matrix.insideGov.init();
     },
   };
   root.matrix.manager = manager;
 
   root.matrix.numberWithCommas = function(x){
     return x.toString().replace(/\B(?=(\d{3})+(?!\d))/g, ",");
+  };
+  root.matrix.prettyPercent = function(x){
+    return (x * 100.0).toFixed(1) + '%';
   };
 }).call(this);
