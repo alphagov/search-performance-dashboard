@@ -9,7 +9,7 @@
     var maxY = d3.max(data),
         minY = d3.min(data);
 
-    maxY = maxY + (maxY * 0.01);
+    maxY = maxY + (maxY * 0.01) + 0.1;
     minY = minY - (minY * 0.01);
 
     var x = d3.scale.linear().domain([0, data.length-1]).range([-(width/data.length), width+(width/data.length)]),
@@ -29,7 +29,7 @@
             .attr('class', 'sparkline'),
         scale = makeScales(data, width, height),
         line = d3.svg.line()
-          .interpolate('basis')
+          .interpolate('linear')
           .x(function(d, i) { return scale.x(i); })
           .y(function(d, i) { return scale.y(d); }),
         path = svg.append('svg:path')
@@ -105,13 +105,12 @@
           .attr('class', 'y label')
           .attr('x', 0)
           .attr('y', -3)
-          .attr('transform', 'rotate(90)')
-          .text(d3.format(',')(d3.max(data)));
+          .attr('transform', 'rotate(90)');
 
     return {
       update: function(newData, xLabel){
         slObj.update(newData);
-        yLab.text(d3.format(',')(d3.max(newData)));
+        yLab.text((newData[newData.length - 1] * 100.0).toFixed(1) + "%");
         xLab.text(xLabel);
       }
     };

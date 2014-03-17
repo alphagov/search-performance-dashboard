@@ -9,16 +9,17 @@
     points: 7,
 
     endpoint: function(){
-      return "/overall"
+      return "/overall?start_days_ago=14"
     },
     parseResponse: function(data){
       var counts = [],
+          click_rate = [],
           stat,
           statsHtml,
           i, _i;
       overall.$el.html(
         '<h1>' + root.matrix.prettyPercent(data.stats[data.stats.length - 1].search_1_click_rate) + '</h1>' +
-        '<p>Searches get &gt;= 1 click</p>'
+        '<p>Searches get at least 1 click</p>'
       );
       statsHtml = '';
       for(i=data.stats.length - 1; i >= 0; i--){
@@ -32,9 +33,9 @@
       overall.$statsEl.html(statsHtml);
       if(typeof overall.sparkline === 'undefined'){
         overall.sparkline = root.matrix.sparklineGraph('#overall-count-graph', { data: counts, points: overall.points, height: 120, width: overall.$graphEl.width() });
-        overall.sparkline.update(counts, "Traffic over the past " + (Math.round(overall.points / 30)) + " hours");
+        overall.sparkline.update(counts, "Click rate over the past " + (Math.round(counts.length)) + " days");
       } else {
-        overall.sparkline.update(counts, "Traffic over the past " + (Math.round(overall.points / 30)) + " hours");
+        overall.sparkline.update(counts, "Click rate over the past " + (Math.round(counts.length)) + " days");
       }
     },
     init: function(){
