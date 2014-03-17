@@ -86,30 +86,31 @@ body {
   .click_positions ul .not li:nth-child(6) {
     color: #6683a9; }
 
-.traffic {
+.overall {
   background: #2b8cc4;
   color: #fff;
   text-align: left; }
-  .traffic h1 {
+  .overall h1 {
     margin: 0em 0 0;
     font-size: 100px; }
-  .traffic p {
-    margin: 0; }
-  .traffic .count {
+  .overall p {
+    margin: 0;
+    font-size: 10pt; }
+  .overall .count {
     float: left;
     width: 33.33%; }
-    .tall .traffic .count {
+    .tall .overall .count {
       width: 50%; }
-  .traffic .graph {
+  .overall .graph {
     float: left;
     width: 66.66%; }
-    .tall .traffic .graph {
+    .tall .overall .graph {
       width: 50%; }
-  .traffic path, .traffic line.axis {
+  .overall path, .overall line.axis {
     stroke: #fff;
     stroke-width: 2;
     fill: none; }
-  .traffic .label {
+  .overall .label {
     fill: #fff;
     font-size: 16px; }
 
