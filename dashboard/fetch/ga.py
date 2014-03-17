@@ -440,13 +440,16 @@ class GAData(object):
         """Calculate overall statistics about search performance.
 
         """
-        average_position = (
-            float(sum(position * count for position, count in total_positions.items()))
-            / sum(total_positions.values())
-        )
-
-
         count_with_cookie = sum(total_positions.values())
+        if count_with_cookie == 0:
+            average_position = 0
+        else:
+            average_position = (
+                float(sum(position * count for position, count in total_positions.items()))
+                / count_with_cookie
+            )
+
+
         count_next_pages = sum(next_page_counts.values())
         logger.info("Number of search -> result transitions with cookie: %d",
                     count_with_cookie)
