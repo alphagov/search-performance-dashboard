@@ -15,6 +15,8 @@ def start_date():
     start_days_ago = request.args.get('start_days_ago', None)
     if start_days_ago is not None:
         start_days_ago = int(start_days_ago)
+    else:
+        start_days_ago = 14
     return datetime.date.today() - datetime.timedelta(days=start_days_ago)
 
 
@@ -22,7 +24,9 @@ def end_date():
     end_days_ago = request.args.get('end_days_ago', None)
     if end_days_ago is not None:
         end_days_ago = int(end_days_ago)
-    return datetime.date.today() - datetime.timedelta(days=0)
+    else:
+        end_days_ago = 0
+    return datetime.date.today() - datetime.timedelta(days=end_days_ago)
 
 
 def overall():
