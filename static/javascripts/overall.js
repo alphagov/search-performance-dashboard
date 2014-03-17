@@ -13,7 +13,7 @@
     },
     parseResponse: function(data){
       var counts = [],
-          click_rate = [],
+          clickRate = [],
           stat,
           statsHtml,
           i, _i;
@@ -24,7 +24,8 @@
       statsHtml = '';
       for(i=data.stats.length - 1; i >= 0; i--){
         stat = data.stats[i];
-        counts.unshift(parseFloat(stat.search_1_click_rate));
+        counts.unshift(parseInt(stat.searches_performed, 10));
+        clickRate.unshift(parseFloat(stat.search_1_click_rate));
         statsHtml += '<li>' +
           '1-click: ' + root.matrix.prettyPercent(stat.search_1_click_rate) +
           '<br>searches: ' + root.matrix.numberWithCommas(stat.searches_performed) +
@@ -32,15 +33,20 @@
       }
       overall.$statsEl.html(statsHtml);
       if(typeof overall.sparkline === 'undefined'){
-        overall.sparkline = root.matrix.sparklineGraph('#overall-count-graph', { data: counts, points: overall.points, height: 120, width: overall.$graphEl.width() });
-        overall.sparkline.update(counts, "Click rate over the past " + (Math.round(counts.length)) + " days");
+        overall.sparkline = root.matrix.sparklineGraph('#overall-click-graph', { data: clickRate, points: overall.points, height: 60, width: overall.$clickGraphEl.width() });
+        overall.count_sparkline = root.matrix.sparklineGraph('#overall-count-graph', { data: counts, points: overall.points, height: 60, width: overall.$countGraphEl.width() });
+        overall.sparkline.update(clickRate, "Click rate over the past " + (Math.round(clickRate.length)) + " days");
+        overall.count_sparkline.update(counts, "Searches over the past " + (Math.round(counts.length)) + " days");
       } else {
-        overall.sparkline.update(counts, "Click rate over the past " + (Math.round(counts.length)) + " days");
+        overall.sparkline.update(clickRate, "Click rate over the past " + (Math.round(clickRate.length)) + " days");
+        overall.count_sparkline.update(counts, "Searches over the past " + (Math.round(counts.length)) + " days");
       }
+
     },
     init: function(){
       overall.$el = $('#overall-count');
-      overall.$graphEl = $('#overall-count-graph');
+      overall.$clickGraphEl = $('#overall-click-graph');
+      overall.$countGraphEl = $('#overall-count-graph');
       overall.$statsEl = $('#overall-statistics');
       overall.reload();
       window.setInterval(overall.reload, 20e3);
