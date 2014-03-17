@@ -49,6 +49,7 @@ class ESSearch(object):
                         'date': { 'order': 'asc' },
                     }
                 ],
+                'size': 1000,
             }
         )
         stats = [
