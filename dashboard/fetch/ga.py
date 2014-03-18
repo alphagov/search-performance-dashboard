@@ -736,55 +736,8 @@ class GAData(object):
             doc['_type'] = 'search_start_page'
             yield doc
 
-    def fetch_overview_data(self, date):
-        """Fetch hourly statistics on search activity.
-        
-        Returns rows with:
-         - _id: stats_all_DATEINFO
-         - hourly time information
-         - 'sessions': Number of sessions that happened
-         - 'sessions_with_search': Number of sessions which used search
-         - 'search_result_views': Number of times a result page was viewed from
-           search
-         - 'total_search_exits': Number of times a session ended after a search
-           without viewing a page
-         - 'unique_searches': Total number of unique-within-a-session searches
-         - 'search_refinements': Total number of times a search was changed
-           within a session
-         - 'search_exit_rate': Proportion of searches which were followed
-           immediately by an exit.
-        
-        """
-
-        def calc_exit_rate(row):
-            if row['unique_searches'] == 0:
-                return 0.0
-            else:
-                return row['total_search_exits'] * 100.0 / row['unique_searches']
-
-        for row in self.client.fetch(
-            'search', date,
-            name_map={
-                'visits': 'sessions',  # Number of sessions that happened
-                'searchVisits': 'sessions_with_search',  # Number of sessions which used search
-                'searchResultViews': 'search_result_views',  # Number of times a result page was viewed from search
-                'searchExits': 'total_search_exits',  # Number of times a session ended after a search without viewing a page
-                'searchUniques': 'unique_searches',  # Total number of unique-within-a-session searches
-                'searchRefinements': 'search_refinements',  # Total number of times a search was changed within a session
-            },
-            computed=[
-                ('_id', lambda x: 'stats_all_%s' % (x['_id']),),
-            ],
-            metrics='ga:visits,ga:searchVisits,ga:searchResultViews,ga:searchExits,ga:searchUniques,ga:searchRefinements',
-            dimensions="ga:hour",
-            sort="ga:hour",
-        ):
-            row['search_exit_rate'] = calc_exit_rate(row)
-            row['_id'] = 'stats_all_%s' % (row['_id'],)
-            yield row
-
-    def fetch_search_traffic_by_destination_orgs(self, date):
-        """Fetch traffic info on searches from pages marked with orgs.
+    def fetch_search_traffic_destination_orgs(self, date):
+        """Fetch traffic info on searches leading to pages marked with orgs.
 
         Returns an indication of the number of searches which led to a page
         associated with an org. Specifically, for each page that a search led
@@ -827,7 +780,7 @@ class GAData(object):
         ]
 
     def fetch_search_traffic_destination_formats(self, date):
-        """Fetch traffic info on searches from pages marked with formats.
+        """Fetch traffic info on searches leading to pages marked with formats.
 
         Returns an count of the number of searches which led to a page
         associated with a format.  This may be based on sampled data.
@@ -860,50 +813,3 @@ class GAData(object):
             )
             for (format, score) in scores.items()
         ]
-
-    def fetch_per_org_overview_data(self, date, analytics_id):
-        """Fetch hourly statistics on search activity for an org.
-        
-        Returns rows with:
-         - _id: stats_all_DATEINFO
-         - hourly time information
-         - 'org': The organisation analytics ID.
-         - 'sessions': Number of sessions that happened
-         - 'sessions_with_search': Number of sessions which used search
-         - 'search_result_views': Number of times a result page was viewed from
-           search
-         - 'total_search_exits': Number of times a session ended after a search
-           without viewing a page
-         - 'unique_searches': Total number of unique-within-a-session searches
-         - 'search_refinements': Total number of times a search was changed
-           within a session
-         - 'search_exit_rate': Proportion of searches which were followed
-           immediately by an exit.
-        
-        """
-
-        def calc_exit_rate(row):
-            if row['unique_searches'] == 0:
-                return 0.0
-            else:
-                return row['total_search_exits'] * 100.0 / row['unique_searches']
-
-        rows = tuple(self._fetch(
-            'search', date,
-            name_map={
-                'visits': 'sessions',  # Number of sessions that happened
-                'searchVisits': 'sessions_with_search',  # Number of sessions which used search
-                'searchResultViews': 'search_result_views',  # Number of times a result page was viewed from search
-                'searchExits': 'total_search_exits',  # Number of times a session ended after a search without viewing a page
-                'searchUniques': 'unique_searches',  # Total number of unique-within-a-session searches
-                'searchRefinements': 'search_refinements',  # Total number of times a search was changed within a session
-            },
-            computed={
-                'search_exit_rate': calc_exit_rate,
-            },
-            metrics='ga:visits,ga:searchVisits,ga:searchResultViews,ga:searchExits,ga:searchUniques,ga:searchRefinements',
-            dimensions="ga:dateHour",
-            segment="dynamic::ga:customVarValue9=~<%s>" % (analytics_id,),  # Change to contains.
-            sort="ga:dateHour",
-        ))
-        return rows
