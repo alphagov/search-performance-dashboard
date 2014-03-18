@@ -608,7 +608,7 @@ class GAData(object):
                     doc.update(split_path(path))
                     yield doc
 
-    def fetch_traffic_info(self, date):
+    def fetch_traffic_info(self):
         """Fetch info on views of pages.
 
         Returns a dict keyed by path.  Values are a tuple of:
@@ -620,7 +620,7 @@ class GAData(object):
         not_found_title = 'Page not found - 404 - GOV.UK'
         result = {}
         for row in self.client.fetch(
-            'search', date,
+            'search', self.date,
             metrics='ga:uniquePageViews',
             dimensions='ga:pagePath,ga:pageTitle',
             sort='-ga:uniquePageViews',
@@ -642,7 +642,7 @@ class GAData(object):
                 item[1] = (item[1] and not_found)
         return result
 
-    def fetch_search_traffic_by_start(self, date, traffic_info):
+    def fetch_search_traffic_by_start(self, traffic_info):
         """Fetch information on traffic from pages associated with an org.
 
         Yields an item for each combination of start page and search.
@@ -656,12 +656,12 @@ class GAData(object):
         each organisation. This may be based on sampled data.
 
         """
-        date_info = self._date_info(date)
+        date_info = self._date_info(self.date)
 
         agg = SearchAggregator(date_info)
 
         for row in self.client.fetch(
-            'search', date,
+            'search', self.date,
             name_map={
                 'uniquePageviews': 'views',
                 'pagePath': 'search_path',
@@ -736,7 +736,7 @@ class GAData(object):
             doc['_type'] = 'search_start_page'
             yield doc
 
-    def fetch_search_traffic_destination_orgs(self, date):
+    def fetch_search_traffic_destination_orgs(self):
         """Fetch traffic info on searches leading to pages marked with orgs.
 
         Returns an indication of the number of searches which led to a page
@@ -748,7 +748,7 @@ class GAData(object):
         """
         scores = Counter()
         for row in self.client.fetch(
-            'search', date,
+            'search', self.date,
             name_map={
                 'uniquePageviews': 'views',
                 'customVarValue9': 'org_codes',
@@ -767,7 +767,7 @@ class GAData(object):
             score = float(views) / len(orgs)
             for org in orgs:
                 scores[org] += score
-        date_info = self._date_info(date)
+        date_info = self._date_info()
         return [
             dict(
                 org_code=org_code,
@@ -779,7 +779,7 @@ class GAData(object):
             for (org_code, score) in scores.items()
         ]
 
-    def fetch_search_traffic_destination_formats(self, date):
+    def fetch_search_traffic_destination_formats(self):
         """Fetch traffic info on searches leading to pages marked with formats.
 
         Returns an count of the number of searches which led to a page
@@ -788,7 +788,7 @@ class GAData(object):
         """
         scores = Counter()
         for row in self.client.fetch(
-            'search', date,
+            'search', self.date,
             name_map={
                 'uniquePageviews': 'views',
                 'customVarValue2': 'format',
@@ -802,7 +802,7 @@ class GAData(object):
             # Force it to be at least 1.
             views = max(int(row['views']), 1)
             scores[row['format']] += views
-        date_info = self._date_info(date)
+        date_info = self._date_info()
         return [
             dict(
                 format=format,
