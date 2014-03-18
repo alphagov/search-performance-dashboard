@@ -65,17 +65,13 @@ class ESSearch(object):
         ]
         if query is not None:
             filters.append({
-                'term': {
-                    'norm_search': query
-                },
+                'term': { 'norm_search': query },
             })
         body = {
             'query': {
                 'filtered': {
                     'query': { 'match_all': {} },
-                    'filter': {
-                        'and': filters
-                    },
+                    'filter': { 'and': filters },
                 }
             },
             'size': 0,
@@ -110,13 +106,32 @@ class ESSearch(object):
             self._date_range_filter(startdate, enddate),
         ]
         body = {
-            'query': { 'match_all': {}},
-            'filter': { 'and': filters },
-            'sort': [{'missed': {'order': 'desc'}}],
-            'size': 10
+            'query': {
+                'filtered': {
+                    'query': { 'match_all': {} },
+                    'filter': { 'and': filters },
+                }
+            },
+            'size': 0,
+            'facets': {
+                'positions': {
+                    'terms_stats': {
+                        'key_field': 'norm_search',
+                        'value_field': 'missed',
+                        'order': 'total',
+                        'size': 20,
+                    }
+                }
+            }
         }
-        result = self.es.search(index=self.index, body=body)
+        result = self.es.search(
+            index=self.index,
+            body=body
+        )
         return [
-            hit['_source']
-            for hit in result['hits']['hits']
+            {
+                "norm_search": item['term'],
+                "missed": item['total'],
+            }
+            for item in result['facets']['positions']['terms']
         ]

@@ -23,11 +23,9 @@
           + '<a href="/clicks?q=' + escape(s.norm_search) + '">'
           + htmlEncode(s.norm_search)
           + '</a>'
-          + ' <em>'
+          + ' <span>'
           + root.matrix.numberWithCommas(Math.floor(s.missed))
-          + '</em> misses <span>'
-          + root.matrix.numberWithCommas(Math.floor(s.clicks))
-          + ' clicks</span>'
+          + ' misses</span>'
           + '</li>';
       }
       search.$el.html(searchesHtml);
