@@ -43,7 +43,7 @@
         }
         return result;
       };
-      stat = data.stats[data.stats.length - 4];
+      stat = data.stats[data.stats.length - 1];
       statsHtml += formatRow('searches', stat.searches_performed, stat.searches_performed_rate);
       statsHtml += formatRow('total&nbsp;clicks', stat.total_clicks);
       statsHtml += formatRow('missed&nbsp;clicks', stat.missed_clicks);
