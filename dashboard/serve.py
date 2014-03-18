@@ -2,9 +2,18 @@ from flask import Flask, request, jsonify, render_template
 from dashboard.essearch import ESSearch
 from dashboard.performance import estimate_missed_clicks
 import datetime
+import functools
 
 
 app = Flask('search_performance_dashboard')
+
+
+def as_json(fn):
+    """Simple decorator to return a json result"""
+    @functools.wraps(fn)
+    def wrapper(*args, **kwargs):
+        return jsonify(fn(*args, **kwargs))
+    return wrapper
 
 
 @app.route('/')
@@ -30,6 +39,8 @@ def end_date():
     return datetime.date.today() - datetime.timedelta(days=end_days_ago)
 
 
+@app.route('/overall')
+@as_json
 def overall():
     es = ESSearch()
     return dict(
@@ -37,11 +48,8 @@ def overall():
     )
 
 
-@app.route('/overall')
-def overall_json():
-    return jsonify(**overall())
-
-
+@app.route('/clicks')
+@as_json
 def clicks():
     es = ESSearch()
     query = request.args.get('q', None)
@@ -54,6 +62,11 @@ def clicks():
     )
 
 
-@app.route('/clicks')
-def click_positions_json():
-    return jsonify(**clicks())
+@app.route('/poor_searches')
+@as_json
+def poor_searches():
+    es = ESSearch()
+    searches = es.poor_searches(start_date(), end_date())
+    return dict(
+        searches=searches,
+    )

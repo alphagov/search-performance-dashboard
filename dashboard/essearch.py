@@ -12,6 +12,17 @@ class ESSearch(object):
         self.es = Elasticsearch()
         self.index = 'search_dashboard'
 
+    @staticmethod
+    def _date_range_filter(startdate, enddate):
+        return {
+            'range': {
+                'date': {
+                    'gte': startdate,
+                    'lte': enddate,
+                }
+            }
+        }
+
     def fetch_stats(self, startdate, enddate):
         """Return an hourly timeseries of rate at which queries get >=1 click.
 
@@ -27,19 +38,8 @@ class ESSearch(object):
                         'query': { 'match_all': {} },
                         'filter': {
                             'and': [
-                                {
-                                    'type': {
-                                        'value': 'result_click_stats',
-                                    },
-                                },
-                                {
-                                    'range': {
-                                        'date': {
-                                            'gte': startdate,
-                                            'lte': enddate,
-                                        }
-                                    },
-                                }
+                                {'type': { 'value': 'result_click_stats' }},
+                                self._date_range_filter(startdate, enddate),
                             ]
                         }
                     }
@@ -61,14 +61,7 @@ class ESSearch(object):
     def click_positions(self, startdate, enddate, query=None):
         filters = [
             {'type': { 'value': 'search_result_click' }},
-            {
-                'range': {
-                    'date': {
-                        'gte': startdate,
-                        'lte': enddate,
-                    }
-                },
-            }
+            self._date_range_filter(startdate, enddate),
         ]
         if query is not None:
             filters.append({
@@ -109,4 +102,21 @@ class ESSearch(object):
         return [
             (position, positions.get(position, 0))
             for position in range(1, max_position + 1)
+        ]
+
+    def poor_searches(self, startdate, enddate):
+        filters = [
+            {'type': { 'value': 'search_stats' }},
+            self._date_range_filter(startdate, enddate),
+        ]
+        body = {
+            'query': { 'match_all': {}},
+            'filter': { 'and': filters },
+            'sort': [{'missed': {'order': 'desc'}}],
+            'size': 10
+        }
+        result = self.es.search(index=self.index, body=body)
+        return [
+            hit['_source']
+            for hit in result['hits']['hits']
         ]

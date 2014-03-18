@@ -13,6 +13,7 @@
       "search_1_click" : { "type" : "long" },
       "search_1_click_rate" : { "type" : "float" },
       "missed_clicks" : { "type" : "double" },
+      "total_clicks" : { "type" : "double" },
       "sampled" : { "type" : "double" },
       "date" : { "type" : "date", "format" : "dateOptionalTime" }
     }

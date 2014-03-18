@@ -9,7 +9,7 @@ body {
   overflow: hidden;
   position: relative;
   font-family: nta, helvetica;
-  font-weight: bold;
+  font-weight: normal;
   font-size: 20px;
   line-height: 1;
   padding: 0;
@@ -49,7 +49,7 @@ body {
 .small-box {
   overflow: hidden;
   width: 100%;
-  height: 200px; }
+  height: 300px; }
 
 .click_positions h1 {
   font-size: 14px;
@@ -129,18 +129,15 @@ body {
   list-style: none; }
   .content li em {
     font-style: normal;
-    display: block;
+    font-weight: bold; }
+  .content li span {
+    font-style: normal;
     font-size: 0.8em;
     font-weight: normal;
     color: #6f777b; }
-    .content li em span {
-      font-size: 0.8em; }
-      .content li em span.triangle {
-        font-size: 0.6em; }
-      .content li em span.triangle, .content li em span.percent {
-        color: #006435; }
-.content li:nth-child(1) {
-  font-size: 160%; }
+  .content li label {
+    display: inline-block;
+    width: 140px; }
 
 @-webkit-keyframes fade-in {
   0% {

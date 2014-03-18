@@ -9,7 +9,7 @@ body {
   overflow: hidden;
   position: relative;
   font-family: nta, helvetica;
-  font-weight: bold;
+  font-weight: normal;
   font-size: 20px;
   line-height: 1;
   padding: 0;
@@ -57,7 +57,7 @@ body {
 .small-box {
   overflow: hidden;
   width: 100%;
-  height: 200px;
+  height: 300px;
 }
 .click_positions {
   h1 {
@@ -164,24 +164,19 @@ body {
     list-style: none;
     em {
       font-style: normal;
-      display: block;
+      font-weight: bold;
+    }
+    span {
+      font-style: normal;
       font-size: 0.8em;
       font-weight: normal;
       color: #6f777b;
-      span {
-        font-size: 0.8em;
-
-        &.triangle {
-          font-size: 0.6em;
-        }
-        &.triangle,
-        &.percent {
-          color: #006435;
-        }
-      }
+    }
+    label {
+      display: inline-block;
+      width: 140px;
     }
   }
-  li:nth-child(1){ font-size: 160%; }
 }
 @-webkit-keyframes fade-in {
   0%   { margin-top: -35px; opacity: 0;}

@@ -11,7 +11,6 @@
 
     maxY = maxY + (maxY * 0.01);
     minY = minY - (minY * 0.01);
-    console.log(minY, maxY)
 
     var x = d3.scale.linear().domain([0, data.length-1]).range([-(width/data.length), width+(width/data.length)]),
         y = d3.scale.linear().domain([minY, maxY]).range([height, 0]);
@@ -56,17 +55,19 @@
     var width = options.width || 600,
         height = options.height || 120,
         padding = options.padding || 20,
+        xpadding = options.xpadding || padding,
+        ypadding = options.ypadding || padding,
         data = options.data || [],
         slOptions = {
-          width: width - padding,
-          height: height - padding,
+          width: width - xpadding,
+          height: height - ypadding,
           data: data
         },
         svg = d3.select(el).append('svg:svg')
           .attr('width', width)
           .attr('height', height),
         sl = svg.append('svg:svg')
-          .attr('x', padding)
+          .attr('x', xpadding)
           .attr('clip-path', 'url(#clip)'),
         slObj = sparkline(sl[0][0], slOptions);
 
@@ -75,10 +76,10 @@
     .append('svg:rect')
       .attr('x', '0')
       .attr('y', '0')
-      .attr('width', width - padding)
-      .attr('height', height - padding);
+      .attr('width', width - xpadding)
+      .attr('height', height - ypadding);
 
-    var scale = makeScales(data, width - padding, height - padding);
+    var scale = makeScales(data, width - xpadding, height - ypadding);
 
     // Not sure I really understand why the range of the x-axis is set as it is
     // by makeScales, but modifying it to something more sensible here.
@@ -89,12 +90,12 @@
 
     svg.append('svg:g')
       .attr('class', 'x axis')
-      .attr('transform', 'translate(' + padding + ',' + (height - padding) + ')')
+      .attr('transform', 'translate(' + xpadding + ',' + (height - ypadding) + ')')
       .call(xAxis);
 
     svg.append('svg:g')
       .attr('class', 'y axis')
-      .attr('transform', 'translate(' + padding + ',0)')
+      .attr('transform', 'translate(' + xpadding + ',0)')
       .call(yAxis);
 
     var xLab = svg.append('text')
@@ -104,15 +105,16 @@
           .attr('y', height - 3),
         yLab = svg.append('text')
           .attr('class', 'y label')
+          .attr('text-anchor', 'start')
           .attr('x', 0)
-          .attr('y', -3)
-          .attr('transform', 'rotate(90)');
+          .attr('y', 20)
+	  ;
 
     return {
-      update: function(newData, xLabel){
+      update: function(newData, xLabel, yLabel){
         slObj.update(newData);
-        yLab.text((newData[newData.length - 1] * 100.0).toFixed(1) + "%");
         xLab.text(xLabel);
+        yLab.text(yLabel);
       }
     };
   };

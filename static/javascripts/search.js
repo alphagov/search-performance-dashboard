@@ -4,42 +4,41 @@
       $ = root.jQuery;
   if(typeof root.matrix === 'undefined'){ root.matrix = {} }
 
-  var search = {
-    terms: [],
-    newTerms: [],
-    $el: false,
-    nextRefresh: 0,
+  function htmlEncode(value){
+    return $('<div/>').text(value).html();
+  }
 
-    endpoint: function(profileId){
-      return "/realtime?"
-        + "ids=ga:"+ profileId +"&"
-        + "metrics=ga:activeVisitors&"
-        + "dimensions=ga:pageTitle,ga:pagePath&"
-        + "filters="+ encodeURIComponent("ga:pagePath==/search") +"&"
-        + "sort=-ga:activeVisitors&"
-        + "max-results=10000";
+  var search = {
+    $el: false,
+
+    endpoint: function(){
+      return "/poor_searches?start_days_ago=14"
     },
-    displayResults: function(){
-      var term = search.newTerms.pop();
-      if(term){
-        search.$el.prepend('<li>'+$('<div>').text(term).html()+'</li>');
-        search.$el.find('li:gt(20)').remove();
-        root.setTimeout(search.displayResults, (search.nextRefresh - Date.now())/search.newTerms.length);
-      } else {
-        root.setTimeout(search.displayResults, 5e3);
+    parseResponse: function(data){
+      var i, _i, s, searchesHtml;
+      searchesHtml = '';
+      for (i = 0, _i = data.searches.length; i < _i; i++) {
+        s = data.searches[i];
+        searchesHtml += '<li>'
+          + '<a href="/clicks?q=' + escape(s.norm_search) + '">'
+          + htmlEncode(s.norm_search)
+          + '</a>'
+          + ' <em>'
+          + root.matrix.numberWithCommas(Math.floor(s.missed))
+          + '</em> misses <span>'
+          + root.matrix.numberWithCommas(Math.floor(s.clicks))
+          + ' clicks</span>'
+          + '</li>';
       }
+      search.$el.html(searchesHtml);
     },
     init: function(){
-      search.$el = $('#search');
-
+      search.$el = $('.poor_searches #content');
       search.reload();
-      search.displayResults();
       window.setInterval(search.reload, 60e3);
     },
     reload: function(){
-      var endpoint = search.endpoint(root.matrix.settings.profileId);
-
-      search.nextRefresh = Date.now() + 60e3;
+      var endpoint = search.endpoint();
       $.ajax({ dataType: 'json', url: endpoint, success: search.parseResponse});
     }
   };

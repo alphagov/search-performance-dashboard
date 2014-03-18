@@ -547,7 +547,9 @@ class GAData(object):
         )
         stats['date'] = self.date_str
         stats['_id'] = self.date_idstr
-        stats['missed_clicks'] = self.total_missed
+        stats['total_clicks'] = self.total_clicks
+        stats['missed_clicks'] = self.missed_clicks
+        stats['total_clicks'] = self.total_clicks
         yield stats
 
 
@@ -561,7 +563,8 @@ class GAData(object):
         # Yield a doc for each combination of (search, destination page, rank)
         # recording number of times that was viewed.
         queries = []
-        total_missed = 0
+        total_clicks = 0
+        missed_clicks = 0
         for norm_search, positions in positions_by_query.items():
             max_position = max(positions.keys())
             counts = [0] * max_position
@@ -586,7 +589,8 @@ class GAData(object):
                     yield doc
                 counts[position - 1] = sum(result_info.values())
             missed = estimate_missed_clicks(counts)
-            total_missed += missed
+            missed_clicks += missed
+            total_clicks += sum(counts)
             doc = {
                 '_type': 'search_stats',
                 '_id': id_from_string('%s!%s' % (
@@ -601,7 +605,8 @@ class GAData(object):
             yield doc
 
         # Want to return this value, but can't because we're a generator
-        self.total_missed = total_missed
+        self.missed_clicks = missed_clicks
+        self.total_clicks = total_clicks
 
     def fetch_traffic_info(self):
         """Fetch info on views of pages.
