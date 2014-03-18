@@ -100,7 +100,7 @@ class ESSearch(object):
             for position in range(1, max_position + 1)
         ]
 
-    def poor_searches(self, startdate, enddate):
+    def poor_searches(self, startdate, enddate, num_searches=60):
         filters = [
             {'type': { 'value': 'search_stats' }},
             self._date_range_filter(startdate, enddate),
@@ -119,7 +119,7 @@ class ESSearch(object):
                         'key_field': 'norm_search',
                         'value_field': 'missed',
                         'order': 'total',
-                        'size': 20,
+                        'size': num_searches,
                     }
                 }
             }

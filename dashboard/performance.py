@@ -79,7 +79,7 @@ def calc_drop_rate(positions, result_len=None, min_count=1000):
     return drop
 
 
-def estimate_missed_clicks(counts):
+def estimate_missed_clicks(counts, min_count=10):
     """Estimate how many more clicks we could get by reordering results.
 
     Returns a score that indicates roughly how many searches would be improved
@@ -104,10 +104,12 @@ def estimate_missed_clicks(counts):
        new positions, and the sum of the number of clicks actually received.
 
     :param counts: a list of click counts for a query, in order of ranking.
+    :param min_count: set counts below this value to zero, to avoid low numbers
+      skewing things.
 
     """
     counts = [
-        count if count >= 5 else 0
+        count if count >= min_count else 0
         for count in counts
     ]
     actual_clicks = sum(counts)
