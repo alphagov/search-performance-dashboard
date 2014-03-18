@@ -101,7 +101,12 @@ class ESSearch(object):
             index=self.index,
             body=body
         )
-        return [
+        positions = dict(
             (item['term'], item['total'])
             for item in result['facets']['positions']['terms']
+        )
+        max_position = max(positions.keys())
+        return [
+            (position, positions.get(position, 0))
+            for position in range(1, max_position + 1)
         ]

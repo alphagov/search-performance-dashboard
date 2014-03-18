@@ -5,6 +5,7 @@
 from collections import Counter
 from dashboard.fetch.ga_client import GAClient, GAError
 from dashboard.fetch.url_to_info import UrlToInfo
+from dashboard.performance import estimate_missed_clicks
 from urlparse import urlparse, parse_qs
 import hashlib
 import logging
@@ -500,38 +501,6 @@ class GAData(object):
             sampled=self.client.worst_sample_rate,
         )
 
-    @staticmethod
-    def _calc_drop_rate(positions, result_len=10):
-        """Calculate the drop-off rate of clicks on positions.
-        
-        Returns an array of rate of clicks compared to the previous position.
-
-        The result array is of length result_len, and the final entry
-        represents the geometric mean of the drop off rates for all subsequent
-        positions supplied.  The logic behind this is that the rate becomes
-        fairly constant after a given point, so for the purposes of comparing
-        to an expected drop its better to use a constant rate, rather than
-        allow the variation we see due to the low sample size for later click
-        posisions.
-
-        """
-        prev_count = positions.get(1, 0)
-        drop = []
-        for pos in range(2, 20):
-            count = positions.get(pos, 0)
-            if prev_count == 0:
-                drop.append(1.0)
-            else:
-                drop.append(float(count) / prev_count)
-            prev_count = count
-        # Compute geometric mean of drop after position 10, since currently the
-        drop[result_len - 1:] = [math.pow(reduce(
-            lambda a, x: a * x,
-            drop[result_len - 1:],
-            1.0
-        ), 1.0 / len(drop[result_len - 1:]))]
-        return drop
-
     def fetch_search_result_clicks(self):
         """Fetch info on clicks on search results.
 
@@ -564,6 +533,10 @@ class GAData(object):
             next_page_counts,
         )
 
+        # Yield documents about individual searches.
+        for doc in self._search_result_clicks(positions_by_query):
+            yield doc
+
         # Yield a document about overall statistics of search
         stats = self._calculate_overall_stats(
             total_positions,
@@ -574,20 +547,24 @@ class GAData(object):
         )
         stats['date'] = self.date_str
         stats['_id'] = self.date_idstr
+        stats['missed_clicks'] = self.total_missed
         yield stats
 
-        for doc in self._search_result_clicks(positions_by_query):
-            yield doc
 
     def _search_result_clicks(self, positions_by_query):
         """Yield a doc for every search-result combination seen.
+
+        Also yield a doc for every search, indicating the ranking performance
+        of that search.
 
         """
         # Yield a doc for each combination of (search, destination page, rank)
         # recording number of times that was viewed.
         queries = []
+        total_missed = 0
         for norm_search, positions in positions_by_query.items():
-            total_clicks_for_search = 0 
+            max_position = max(positions.keys())
+            counts = [0] * max_position
             for position, result_info in positions.items():
                 for (search, path), count in result_info.items():
                     doc = {
@@ -607,6 +584,24 @@ class GAData(object):
                     }
                     doc.update(split_path(path))
                     yield doc
+                counts[position - 1] = sum(result_info.values())
+            missed = estimate_missed_clicks(counts)
+            total_missed += missed
+            doc = {
+                '_type': 'search_stats',
+                '_id': id_from_string('%s!%s' % (
+                    self.date_idstr,
+                    norm_search,
+                )),
+                'date': self.date_str,
+                'norm_search': norm_search,
+                'clicks': sum(counts),
+                'missed': missed,
+            }
+            yield doc
+
+        # Want to return this value, but can't because we're a generator
+        self.total_missed = total_missed
 
     def fetch_traffic_info(self):
         """Fetch info on views of pages.

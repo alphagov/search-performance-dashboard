@@ -1,5 +1,6 @@
 from flask import Flask, request, jsonify, render_template
 from dashboard.essearch import ESSearch
+from dashboard.performance import estimate_missed_clicks
 import datetime
 
 
@@ -41,14 +42,18 @@ def overall_json():
     return jsonify(**overall())
 
 
-def click_positions():
+def clicks():
     es = ESSearch()
     query = request.args.get('q', None)
+    positions = es.click_positions(start_date(), end_date(), query=query)
+    counts = [count for (pos, count) in positions]
     return dict(
-        positions=es.click_positions(start_date(), end_date(), query=query)
+        positions=positions,
+        total=sum(counts),
+        performance=estimate_missed_clicks(counts),
     )
 
 
-@app.route('/click_positions')
+@app.route('/clicks')
 def click_positions_json():
-    return jsonify(**click_positions())
+    return jsonify(**clicks())
