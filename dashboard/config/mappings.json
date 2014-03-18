@@ -12,7 +12,43 @@
       "search_abandons_rate" : { "type" : "float" },
       "search_1_click" : { "type" : "long" },
       "search_1_click_rate" : { "type" : "float" },
+      "missed_clicks" : { "type" : "double" },
+      "total_clicks" : { "type" : "double" },
       "sampled" : { "type" : "double" },
+      "date" : { "type" : "date", "format" : "dateOptionalTime" }
+    }
+  },
+
+  "search_stats": {
+    "_all": { "enabled": false },
+    "properties" : {
+      "clicks" : { "type" : "long" },
+      "missed" : { "type" : "long" },
+      "norm_search" : { "type" : "string", "index": "not_analyzed" },
+      "date" : { "type" : "date", "format" : "dateOptionalTime" }
+    }
+  },
+
+  "search_result_click": {
+    "_all": { "enabled": false },
+    "properties" : {
+      "position" : { "type" : "long" },
+      "clicks" : { "type" : "long" },
+      "norm_search" : { "type" : "string", "index": "not_analyzed"
+      },
+      "search" : {
+        "type": "multi_field",
+        "fields": {
+          "search": { "type" : "string", "index": "not_analyzed" },
+          "analyzed": { "type" : "string", "analyzer": "english_text" }
+        }
+      },
+
+      "path" : { "type" : "string", "index": "not_analyzed" },
+      "path1" : { "type" : "string", "index": "not_analyzed" },
+      "path2" : { "type" : "string", "index": "not_analyzed" },
+      "path3" : { "type" : "string", "index": "not_analyzed" },
+
       "date" : { "type" : "date", "format" : "dateOptionalTime" }
     }
   },

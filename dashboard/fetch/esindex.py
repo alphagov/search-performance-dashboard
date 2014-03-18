@@ -38,7 +38,10 @@ class ESIndex(object):
                 index=self.index_name,
                 doc_type=type,
                 body={type: mapping})
-        self.es.indices.put_alias(self.index_name, 'search_dashboard')
+        self.es.indices.put_alias(
+            index=self.index_name,
+            name='search_dashboard',
+        )
 
     def add(self, docs):
         if not self.es.indices.exists(self.index_name):

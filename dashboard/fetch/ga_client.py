@@ -40,15 +40,22 @@ def cached_iterator(fn):
                     yield json.loads(row)
             return
         logger.info("Performing GA request %s", path)
+        sampled = False
         try:
             with open(path + '.tmp', 'wb') as fobj:
                 for result in fn(self, *args, **kwargs):
+                    if result.get('sampled') is not None:
+                        sampled = True
                     fobj.write(json.dumps(result, separators=(',', ':')) + '\n')
                     yield result
         except:
             os.unlink(path + '.tmp')
             raise
-        os.rename(path + '.tmp', path)
+        if sampled:
+            # Don't cache sampled results
+            os.unlink(path + '.tmp')
+        else:
+            os.rename(path + '.tmp', path)
 
     return wrapped
 

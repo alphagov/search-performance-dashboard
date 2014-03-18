@@ -5,6 +5,7 @@
 from collections import Counter
 from dashboard.fetch.ga_client import GAClient, GAError
 from dashboard.fetch.url_to_info import UrlToInfo
+from dashboard.performance import estimate_missed_clicks
 from urlparse import urlparse, parse_qs
 import hashlib
 import logging
@@ -440,13 +441,16 @@ class GAData(object):
         """Calculate overall statistics about search performance.
 
         """
-        average_position = (
-            float(sum(position * count for position, count in total_positions.items()))
-            / sum(total_positions.values())
-        )
-
-
         count_with_cookie = sum(total_positions.values())
+        if count_with_cookie == 0:
+            average_position = 0
+        else:
+            average_position = (
+                float(sum(position * count for position, count in total_positions.items()))
+                / count_with_cookie
+            )
+
+
         count_next_pages = sum(next_page_counts.values())
         logger.info("Number of search -> result transitions with cookie: %d",
                     count_with_cookie)
@@ -497,38 +501,6 @@ class GAData(object):
             sampled=self.client.worst_sample_rate,
         )
 
-    @staticmethod
-    def _calc_drop_rate(positions, result_len=10):
-        """Calculate the drop-off rate of clicks on positions.
-        
-        Returns an array of rate of clicks compared to the previous position.
-
-        The result array is of length result_len, and the final entry
-        represents the geometric mean of the drop off rates for all subsequent
-        positions supplied.  The logic behind this is that the rate becomes
-        fairly constant after a given point, so for the purposes of comparing
-        to an expected drop its better to use a constant rate, rather than
-        allow the variation we see due to the low sample size for later click
-        posisions.
-
-        """
-        prev_count = positions.get(1, 0)
-        drop = []
-        for pos in range(2, 20):
-            count = positions.get(pos, 0)
-            if prev_count == 0:
-                drop.append(1.0)
-            else:
-                drop.append(float(count) / prev_count)
-            prev_count = count
-        # Compute geometric mean of drop after position 10, since currently the
-        drop[result_len - 1:] = [math.pow(reduce(
-            lambda a, x: a * x,
-            drop[result_len - 1:],
-            1.0
-        ), 1.0 / len(drop[result_len - 1:]))]
-        return drop
-
     def fetch_search_result_clicks(self):
         """Fetch info on clicks on search results.
 
@@ -561,6 +533,10 @@ class GAData(object):
             next_page_counts,
         )
 
+        # Yield documents about individual searches.
+        for doc in self._search_result_clicks(positions_by_query):
+            yield doc
+
         # Yield a document about overall statistics of search
         stats = self._calculate_overall_stats(
             total_positions,
@@ -571,37 +547,68 @@ class GAData(object):
         )
         stats['date'] = self.date_str
         stats['_id'] = self.date_idstr
+        stats['total_clicks'] = self.total_clicks
+        stats['missed_clicks'] = self.missed_clicks
+        stats['total_clicks'] = self.total_clicks
         yield stats
 
-        for doc in self._search_result_clicks(positions_by_query):
-            yield doc
 
     def _search_result_clicks(self, positions_by_query):
         """Yield a doc for every search-result combination seen.
+
+        Also yield a doc for every search, indicating the ranking performance
+        of that search.
 
         """
         # Yield a doc for each combination of (search, destination page, rank)
         # recording number of times that was viewed.
         queries = []
+        total_clicks = 0
+        missed_clicks = 0
         for norm_search, positions in positions_by_query.items():
-            total_clicks_for_search = 0 
+            max_position = max(positions.keys())
+            counts = [0] * max_position
             for position, result_info in positions.items():
                 for (search, path), count in result_info.items():
-                    yield {
+                    doc = {
                         '_type': 'search_result_click',
-                        '_id': id_from_string('%s!%s!%s' % (
+                        '_id': id_from_string('%s!%s!%s!%s' % (
+                            self.date_idstr,
                             search,
                             position,
                             path,
                         )),
+                        'date': self.date_str,
                         'search': search,
                         'position': position,
                         'path': path,
                         'norm_search': norm_search,
                         'clicks': count,
                     }
+                    doc.update(split_path(path))
+                    yield doc
+                counts[position - 1] = sum(result_info.values())
+            missed = estimate_missed_clicks(counts)
+            missed_clicks += missed
+            total_clicks += sum(counts)
+            doc = {
+                '_type': 'search_stats',
+                '_id': id_from_string('%s!%s' % (
+                    self.date_idstr,
+                    norm_search,
+                )),
+                'date': self.date_str,
+                'norm_search': norm_search,
+                'clicks': sum(counts),
+                'missed': missed,
+            }
+            yield doc
 
-    def fetch_traffic_info(self, date):
+        # Want to return this value, but can't because we're a generator
+        self.missed_clicks = missed_clicks
+        self.total_clicks = total_clicks
+
+    def fetch_traffic_info(self):
         """Fetch info on views of pages.
 
         Returns a dict keyed by path.  Values are a tuple of:
@@ -613,7 +620,7 @@ class GAData(object):
         not_found_title = 'Page not found - 404 - GOV.UK'
         result = {}
         for row in self.client.fetch(
-            'search', date,
+            'search', self.date,
             metrics='ga:uniquePageViews',
             dimensions='ga:pagePath,ga:pageTitle',
             sort='-ga:uniquePageViews',
@@ -635,7 +642,7 @@ class GAData(object):
                 item[1] = (item[1] and not_found)
         return result
 
-    def fetch_search_traffic_by_start(self, date, traffic_info):
+    def fetch_search_traffic_by_start(self, traffic_info):
         """Fetch information on traffic from pages associated with an org.
 
         Yields an item for each combination of start page and search.
@@ -649,12 +656,12 @@ class GAData(object):
         each organisation. This may be based on sampled data.
 
         """
-        date_info = self._date_info(date)
+        date_info = self._date_info(self.date)
 
         agg = SearchAggregator(date_info)
 
         for row in self.client.fetch(
-            'search', date,
+            'search', self.date,
             name_map={
                 'uniquePageviews': 'views',
                 'pagePath': 'search_path',
@@ -696,9 +703,6 @@ class GAData(object):
                 'search': search,
                 'norm_search': norm_search,
             }
-            page_fields = {
-                'path': path,
-            }
             page_fields.update(split_path(path))
 
             # Build or update a document for each search
@@ -732,55 +736,8 @@ class GAData(object):
             doc['_type'] = 'search_start_page'
             yield doc
 
-    def fetch_overview_data(self, date):
-        """Fetch hourly statistics on search activity.
-        
-        Returns rows with:
-         - _id: stats_all_DATEINFO
-         - hourly time information
-         - 'sessions': Number of sessions that happened
-         - 'sessions_with_search': Number of sessions which used search
-         - 'search_result_views': Number of times a result page was viewed from
-           search
-         - 'total_search_exits': Number of times a session ended after a search
-           without viewing a page
-         - 'unique_searches': Total number of unique-within-a-session searches
-         - 'search_refinements': Total number of times a search was changed
-           within a session
-         - 'search_exit_rate': Proportion of searches which were followed
-           immediately by an exit.
-        
-        """
-
-        def calc_exit_rate(row):
-            if row['unique_searches'] == 0:
-                return 0.0
-            else:
-                return row['total_search_exits'] * 100.0 / row['unique_searches']
-
-        for row in self.client.fetch(
-            'search', date,
-            name_map={
-                'visits': 'sessions',  # Number of sessions that happened
-                'searchVisits': 'sessions_with_search',  # Number of sessions which used search
-                'searchResultViews': 'search_result_views',  # Number of times a result page was viewed from search
-                'searchExits': 'total_search_exits',  # Number of times a session ended after a search without viewing a page
-                'searchUniques': 'unique_searches',  # Total number of unique-within-a-session searches
-                'searchRefinements': 'search_refinements',  # Total number of times a search was changed within a session
-            },
-            computed=[
-                ('_id', lambda x: 'stats_all_%s' % (x['_id']),),
-            ],
-            metrics='ga:visits,ga:searchVisits,ga:searchResultViews,ga:searchExits,ga:searchUniques,ga:searchRefinements',
-            dimensions="ga:hour",
-            sort="ga:hour",
-        ):
-            row['search_exit_rate'] = calc_exit_rate(row)
-            row['_id'] = 'stats_all_%s' % (row['_id'],)
-            yield row
-
-    def fetch_search_traffic_by_destination_orgs(self, date):
-        """Fetch traffic info on searches from pages marked with orgs.
+    def fetch_search_traffic_destination_orgs(self):
+        """Fetch traffic info on searches leading to pages marked with orgs.
 
         Returns an indication of the number of searches which led to a page
         associated with an org. Specifically, for each page that a search led
@@ -791,7 +748,7 @@ class GAData(object):
         """
         scores = Counter()
         for row in self.client.fetch(
-            'search', date,
+            'search', self.date,
             name_map={
                 'uniquePageviews': 'views',
                 'customVarValue9': 'org_codes',
@@ -810,7 +767,7 @@ class GAData(object):
             score = float(views) / len(orgs)
             for org in orgs:
                 scores[org] += score
-        date_info = self._date_info(date)
+        date_info = self._date_info()
         return [
             dict(
                 org_code=org_code,
@@ -822,8 +779,8 @@ class GAData(object):
             for (org_code, score) in scores.items()
         ]
 
-    def fetch_search_traffic_destination_formats(self, date):
-        """Fetch traffic info on searches from pages marked with formats.
+    def fetch_search_traffic_destination_formats(self):
+        """Fetch traffic info on searches leading to pages marked with formats.
 
         Returns an count of the number of searches which led to a page
         associated with a format.  This may be based on sampled data.
@@ -831,7 +788,7 @@ class GAData(object):
         """
         scores = Counter()
         for row in self.client.fetch(
-            'search', date,
+            'search', self.date,
             name_map={
                 'uniquePageviews': 'views',
                 'customVarValue2': 'format',
@@ -845,7 +802,7 @@ class GAData(object):
             # Force it to be at least 1.
             views = max(int(row['views']), 1)
             scores[row['format']] += views
-        date_info = self._date_info(date)
+        date_info = self._date_info()
         return [
             dict(
                 format=format,
@@ -856,50 +813,3 @@ class GAData(object):
             )
             for (format, score) in scores.items()
         ]
-
-    def fetch_per_org_overview_data(self, date, analytics_id):
-        """Fetch hourly statistics on search activity for an org.
-        
-        Returns rows with:
-         - _id: stats_all_DATEINFO
-         - hourly time information
-         - 'org': The organisation analytics ID.
-         - 'sessions': Number of sessions that happened
-         - 'sessions_with_search': Number of sessions which used search
-         - 'search_result_views': Number of times a result page was viewed from
-           search
-         - 'total_search_exits': Number of times a session ended after a search
-           without viewing a page
-         - 'unique_searches': Total number of unique-within-a-session searches
-         - 'search_refinements': Total number of times a search was changed
-           within a session
-         - 'search_exit_rate': Proportion of searches which were followed
-           immediately by an exit.
-        
-        """
-
-        def calc_exit_rate(row):
-            if row['unique_searches'] == 0:
-                return 0.0
-            else:
-                return row['total_search_exits'] * 100.0 / row['unique_searches']
-
-        rows = tuple(self._fetch(
-            'search', date,
-            name_map={
-                'visits': 'sessions',  # Number of sessions that happened
-                'searchVisits': 'sessions_with_search',  # Number of sessions which used search
-                'searchResultViews': 'search_result_views',  # Number of times a result page was viewed from search
-                'searchExits': 'total_search_exits',  # Number of times a session ended after a search without viewing a page
-                'searchUniques': 'unique_searches',  # Total number of unique-within-a-session searches
-                'searchRefinements': 'search_refinements',  # Total number of times a search was changed within a session
-            },
-            computed={
-                'search_exit_rate': calc_exit_rate,
-            },
-            metrics='ga:visits,ga:searchVisits,ga:searchResultViews,ga:searchExits,ga:searchUniques,ga:searchRefinements',
-            dimensions="ga:dateHour",
-            segment="dynamic::ga:customVarValue9=~<%s>" % (analytics_id,),  # Change to contains.
-            sort="ga:dateHour",
-        ))
-        return rows

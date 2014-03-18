@@ -11,10 +11,8 @@ def index_daily_data(date):
     es.clear()
     es.create_index()
     es.add(ga.fetch_search_result_clicks())
-#    traffic_info = ga.fetch_traffic_info()
+    traffic_info = ga.fetch_traffic_info()
 #    es.add(ga.fetch_search_traffic_by_start(traffic_info))
 
-#    es.add(ga.fetch_overview_data())
-#    es.add(ga.fetch_search_traffic_by_destination_orgs())
-#    es.add(ga.fetch_search_traffic_destination_formats())
-#    es.add(ga.fetch_page_traffic())
+    es.add(ga.fetch_search_traffic_destination_orgs())
+    es.add(ga.fetch_search_traffic_destination_formats())

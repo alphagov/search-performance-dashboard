@@ -3,3 +3,6 @@
 /secrets/storage.json
 /secrets/profile_*.json
 /cache/gacache/
+/cache/urlinfo.json
+/.ruby-version
+/.sass-cache/
