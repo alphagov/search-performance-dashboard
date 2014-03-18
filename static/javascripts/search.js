@@ -19,13 +19,13 @@
       searchesHtml = '';
       for (i = 0, _i = data.searches.length; i < _i; i++) {
         s = data.searches[i];
-        searchesHtml += '<li>'
+        searchesHtml += '<li class="tile">'
           + '<a href="/clicks?q=' + escape(s.norm_search) + '">'
           + htmlEncode(s.norm_search)
           + '</a>'
-          + ' <span>'
+          + '&nbsp;<span>('
           + root.matrix.numberWithCommas(Math.floor(s.missed))
-          + ' misses</span>'
+          + ')</span>'
           + '</li>';
       }
       search.$el.html(searchesHtml);

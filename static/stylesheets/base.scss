@@ -35,8 +35,8 @@ body {
   }
 }
 .box {
-  height: calc(100% - 210px);
-  width: 33.33%;
+  height: calc(100% - 310px);
+  width: 33%;
   float: left;
   overflow: hidden;
 
@@ -50,6 +50,9 @@ body {
     }
   }
 
+}
+.box.poor_searches {
+  width: 67%;
 }
 .box-inner {
   padding: 20px;
@@ -176,6 +179,14 @@ body {
       display: inline-block;
       width: 140px;
     }
+  }
+  li.tile {
+    display: block;
+    float: left;
+    width: 210px;
+    overflow: hidden;
+    white-space: nowrap;
+    margin-right: 5px;
   }
 }
 @-webkit-keyframes fade-in {
