@@ -8,4 +8,4 @@ if __name__ == '__main__':
     from dashboard.serve import app
     if '--debug' in sys.argv[1:]:
         app.debug = True
-    app.run(host='0.0.0.0', port=4001)
+    app.run(host='0.0.0.0', port=4001, threaded=True)
