@@ -78,7 +78,7 @@ class ESSearch(object):
             'facets': {
                 'positions': {
                     'terms_stats': {
-                        'key_field': 'position',
+                        'key_field': 'position_path',
                         'value_field': 'clicks',
                         'order': 'term',
                         'size': 0,
@@ -90,13 +90,19 @@ class ESSearch(object):
             index=self.index,
             body=body
         )
-        positions = dict(
-            (item['term'], item['total'])
-            for item in result['facets']['positions']['terms']
-        )
+        positions = {}
+        for item in result['facets']['positions']['terms']:
+            term = item['term']
+            position = int(term[:4])
+            path = term[4:]
+            count = item['total']
+            positions.setdefault(position, []).append((path, item['total']))
         max_position = max(positions.keys())
         return [
-            (position, positions.get(position, 0))
+            (position,
+             sum(i[1] for i in positions.get(position, [])),
+             positions.get(position, []),
+            )
             for position in range(1, max_position + 1)
         ]
 

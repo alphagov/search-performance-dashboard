@@ -54,7 +54,7 @@ def clicks():
     es = ESSearch()
     query = request.args.get('q', None)
     positions = es.click_positions(start_date(), end_date(), query=query)
-    counts = [count for (pos, count) in positions]
+    counts = [count for (pos, path_counts, count) in positions]
     return dict(
         positions=positions,
         total=sum(counts),
