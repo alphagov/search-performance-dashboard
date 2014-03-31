@@ -582,6 +582,12 @@ class GAData(object):
                         'search': search,
                         'position': position,
                         'path': path,
+                        # Combined position_path field is used for facet
+                        # calculations; this is only needed because the
+                        # terms_stats facet doesn't allow a script to be used
+                        # for the key field - with elasticsearch 1.0
+                        # aggregations, this field wouldn't be needed.
+                        'position_path': "%04d%s" % (position, path),
                         'norm_search': norm_search,
                         'clicks': count,
                     }

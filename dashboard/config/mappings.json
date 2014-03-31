@@ -44,6 +44,7 @@
         }
       },
 
+      "position_path" : { "type" : "string", "index": "not_analyzed" },
       "path" : { "type" : "string", "index": "not_analyzed" },
       "path1" : { "type" : "string", "index": "not_analyzed" },
       "path2" : { "type" : "string", "index": "not_analyzed" },
