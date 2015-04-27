@@ -218,7 +218,7 @@ class GAData(object):
         for row in self.client.fetch(
             'search', self.date,
             dimensions='ga:pagePath,ga:previousPagePath,ga:customVarValue21',
-            metrics='ga:pageViews',
+            metrics='ga:pageViews,ga:uniquePageViews',
             sort='-ga:pageViews',
             filters='ga:previousPagePath=~^/search\\\?;ga:pagePath!~^/search\\\?;ga:customVarValue21=~.',
             name_map={
@@ -284,7 +284,7 @@ class GAData(object):
         for row in self.client.fetch(
             'search', self.date,
             dimensions='ga:pagePath,ga:previousPagePath',
-            metrics='ga:pageViews',
+            metrics='ga:pageViews,ga:uniquePageViews',
             sort='-ga:pageViews',
             filters='ga:previousPagePath=~^/search\\\?;ga:pagePath!~^/search\\\?',
             name_map={
@@ -314,7 +314,7 @@ class GAData(object):
         for row in self.client.fetch(
             'search', self.date,
             dimensions='ga:pagePath,ga:previousPagePath',
-            metrics='ga:pageViews',
+            metrics='ga:pageViews,ga:uniquePageViews',
             sort='-ga:pageViews',
             filters='ga:previousPagePath=~^/search\\\?;ga:pagePath=~^/search\\\?',
             name_map={
@@ -343,7 +343,7 @@ class GAData(object):
         for row in self.client.fetch(
             'search', self.date,
             dimensions='ga:exitPagePath',
-            metrics='ga:pageViews',
+            metrics='ga:pageViews,ga:uniquePageViews',
             sort='-ga:pageViews',
             filters='ga:exitPagePath=~^/search\\\?',
             name_map={
@@ -368,7 +368,7 @@ class GAData(object):
         for row in self.client.fetch(
             'search', self.date,
             dimensions='ga:pagePath,ga:previousPagePath', 
-            metrics='ga:pageViews',
+            metrics='ga:pageViews,ga:uniquePageViews',
             sort='-ga:pageViews',
             filters='ga:pagePath=~^/search\\\?',
             name_map={
