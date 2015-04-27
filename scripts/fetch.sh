@@ -13,7 +13,7 @@ while :; do
 
 # Fetch the last week's data (unsampled data that was previously returned will
 # be retrieved from the cache.
-PYTHONPATH="${DIR}/.." "${DIR}/fetch_data.py" 7
+PYTHONPATH="${DIR}/.." "${DIR}/fetch_data.py" 28
 
 echo "Waiting until 8am for next fetch"
 sleep `python -c 'import datetime;
