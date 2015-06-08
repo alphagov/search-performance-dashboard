@@ -217,12 +217,12 @@ class GAData(object):
 
         for row in self.client.fetch(
             'search', self.date,
-            dimensions='ga:pagePath,ga:previousPagePath,ga:customVarValue21',
+            dimensions='ga:pagePath,ga:previousPagePath,ga:dimension21',
             metrics='ga:pageViews,ga:uniquePageViews',
             sort='-ga:pageViews',
-            filters='ga:previousPagePath=~^/search\\\?;ga:pagePath!~^/search\\\?;ga:customVarValue21=~.',
+            filters='ga:previousPagePath=~^/search\\\?;ga:pagePath!~^/search\\\?;ga:dimension21=~.',
             name_map={
-                'customVarValue21': 'position',
+                'dimension21': 'position',
                 'pageViews': 'views',
                 'pagePath': 'path',
                 'previousPagePath': 'search_path',
